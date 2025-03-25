@@ -5,17 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="65a78401-d81a-4315-9e92-3343760b9d97" name="Changes" comment="Generators added">
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/GeneratorsTestFilesMaker.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/EmpiricalGenerator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/ExponentialGenerator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/Generator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/SeedGenerator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/TriangularGenerator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/UniformGenerator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Controller.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/EventSimulation.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/EventSimulationData.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/GUI.form" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/GUI.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/MonteCarlo.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Station.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Statistics.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/SystemEvent.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/Event.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Event.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Main.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -27,6 +27,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Interface" />
+        <option value="Record" />
         <option value="Class" />
       </list>
     </option>
@@ -34,21 +35,21 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "nuffo"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;nuffo&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/nuffo/sp2-diss.git",
-    "accountId": "aae3a2fc-9dbb-4e27-95f3-fb951fbec00e"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/nuffo/sp2-diss.git&quot;,
+    &quot;accountId&quot;: &quot;aae3a2fc-9dbb-4e27-95f3-fb951fbec00e&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 0
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
   <component name="ProjectId" id="2uWyWdj3MzcTUvfKEcaRxw9htOS" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="2" id="Add" />
@@ -57,28 +58,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.InputAnalyzerFilesGenerator.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "master",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/nufo/IdeaProjects/sp2_diss/src/main/java/nufo/diss/generators",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "onboarding.tips.debug.path": "/Users/nufo/IdeaProjects/sp2_diss/src/main/java/nufo/diss/Main.java",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.InputAnalyzerFilesGenerator.executor&quot;: &quot;Run&quot;,
+    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/nufo/IdeaProjects/sp2_diss/src/main/java/nufo/diss/generators&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;onboarding.tips.debug.path&quot;: &quot;/Users/nufo/IdeaProjects/sp2_diss/src/main/java/nufo/diss/Main.java&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/main/java/nufo/diss/generators" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="nufo.diss" />
       <recent name="nufo.diss.generators" />
     </key>
   </component>
@@ -99,6 +102,8 @@
       <option name="presentableId" value="Default" />
       <updated>1742378658268</updated>
       <workItem from="1742378659323" duration="19914000" />
+      <workItem from="1742663864255" duration="22309000" />
+      <workItem from="1742817685739" duration="29292000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <option name="closed" value="true" />
@@ -132,7 +137,15 @@
       <option name="project" value="LOCAL" />
       <updated>1742640114211</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Generators added">
+      <option name="closed" value="true" />
+      <created>1742663951438</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1742663951438</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -154,6 +167,7 @@
     <MESSAGE value="Added class Event" />
     <MESSAGE value="Assignment added" />
     <MESSAGE value="Assignment update" />
-    <option name="LAST_COMMIT_MESSAGE" value="Assignment update" />
+    <MESSAGE value="Generators added" />
+    <option name="LAST_COMMIT_MESSAGE" value="Generators added" />
   </component>
 </project>
