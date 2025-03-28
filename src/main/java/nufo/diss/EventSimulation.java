@@ -41,6 +41,7 @@ public abstract class EventSimulation extends MonteCarlo {
             Event event = eventCalendar.poll();
             setCurrentTime(event.getExecutionTime());
             event.execute();
+            notifyStateChange();
         }
     }
 
@@ -58,7 +59,7 @@ public abstract class EventSimulation extends MonteCarlo {
 
     private void setCurrentTime(double time) {
         currentTime = time;
-        notifyStateChange();
+//        notifyStateChange();
     }
 
     public double getCurrentTime() {
