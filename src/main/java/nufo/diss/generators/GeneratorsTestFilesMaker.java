@@ -12,15 +12,15 @@ public class GeneratorsTestFilesMaker {
 
 
         EmpiricalGenerator empiricalGeneratorDiscrete = new EmpiricalGenerator(
-                List.of(10.0, 25.0),
-                List.of(25.0, 50.0),
-                List.of(0.6, 0.4),
+                List.of(5.0, 10.0, 50.0, 70.0, 80.0),
+                List.of(10.0, 50.0, 70.0, 80.0, 95.0),
+                List.of(0.4, 0.3, 0.2, 0.06, 0.04),
                 Generator.Mode.DISCRETE
         );
         EmpiricalGenerator empiricalGeneratorContinuous = new EmpiricalGenerator(
-                List.of(10.0, 25.0),
-                List.of(25.0, 50.0),
-                List.of(0.6, 0.4),
+                List.of(5.0, 10.0, 50.0, 70.0, 80.0),
+                List.of(10.0, 50.0, 70.0, 80.0, 95.0),
+                List.of(0.4, 0.3, 0.2, 0.06, 0.04),
                 Generator.Mode.CONTINUOUS
         );
 
@@ -28,15 +28,15 @@ public class GeneratorsTestFilesMaker {
 
         TriangularGenerator triangularGenerator = new TriangularGenerator(60, 480, 120);
 
-        writeToFile("uniform_discrete.dst", uniformGeneratorDiscrete, 10000, Type.INTEGER);
-        writeToFile("uniform_continuous.dst", uniformGeneratorContinuous, 10000, Type.DOUBLE);
+        writeToFile("uniform_discrete.dst", uniformGeneratorDiscrete, 100000, Type.INTEGER);
+        writeToFile("uniform_continuous.dst", uniformGeneratorContinuous, 100000, Type.DOUBLE);
 
-        writeToFile("empirical_discrete.dst", empiricalGeneratorDiscrete, 10000, Type.INTEGER);
-        writeToFile("empirical_continuous.dst", empiricalGeneratorContinuous, 10000, Type.DOUBLE);
+        writeToFile("empirical_discrete.dst", empiricalGeneratorDiscrete, 100000, Type.INTEGER);
+        writeToFile("empirical_continuous.dst", empiricalGeneratorContinuous, 100000, Type.DOUBLE);
 
-        writeToFile("exponential.dst", exponentialGenerator, 10000, Type.DOUBLE);
-
-        writeToFile("triangular.dst", triangularGenerator, 10000, Type.DOUBLE);
+        writeToFile("exponential.dst", exponentialGenerator, 100000, Type.DOUBLE);
+//
+        writeToFile("triangular.dst", triangularGenerator, 100000, Type.DOUBLE);
     }
 
     private static void writeToFile(String filename, Generator generator, int count, Type type) {
@@ -44,7 +44,7 @@ public class GeneratorsTestFilesMaker {
             for (int i = 0; i < count; i++) {
                 String value = (type == Type.INTEGER) ? String.valueOf(generator.nextInt()) : String.valueOf(generator.nextDouble());
                 writer.write(value);
-                writer.newLine(); // Adds a new line after each value
+                writer.newLine();
             }
             System.out.println("File written successfully to " + filename);
         } catch (IOException e) {

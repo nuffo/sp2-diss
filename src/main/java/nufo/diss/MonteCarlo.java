@@ -3,16 +3,16 @@ package nufo.diss;
 import java.util.function.Consumer;
 
 public abstract class MonteCarlo {
-    protected SimulationState simulationState;
+    protected State state;
     protected int numberOfReplications;
     protected int actualReplication;
 //    private final int totalPoints;
     private final int skipReplicationsPercentage;
     protected final Object lock = new Object();
-    protected Consumer<EventSimulationData> dataConsumer;
+    protected Consumer<? super SimulationData> dataConsumer;
 
     MonteCarlo(int numberOfReplications, int skipReplicationsPercentage) {
-        this.simulationState = SimulationState.CREATED;
+        this.state = State.CREATED;
         this.numberOfReplications = numberOfReplications;
         this.actualReplication = 1;
 //        this.totalPoints = totalPoints;
@@ -20,11 +20,11 @@ public abstract class MonteCarlo {
     }
 
     public void run() {
-        if (simulationState == SimulationState.RUNNING) {
+        if (state == State.RUNNING) {
             throw new IllegalStateException("Simulation already running");
         }
 
-        simulationState = SimulationState.RUNNING;
+        state = State.RUNNING;
 
 //        double sum = 0;
 //        int step = (numberOfReplications > totalPoints) ? numberOfReplications / totalPoints : 1;
@@ -32,51 +32,63 @@ public abstract class MonteCarlo {
         beforeSimulation();
 
         for (actualReplication = 1; actualReplication <= numberOfReplications; actualReplication++) {
-            if (simulationState == SimulationState.STOPPED) {
+            if (state == State.STOPPED) {
                 break;
+            }
+
+            synchronized (lock) {
+                while (state == State.PAUSED) {
+                    try {
+                        lock.wait();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
             }
 
             beforeExperiment();
 
             this.experiment();
 
-            if (actualReplication > (numberOfReplications * (skipReplicationsPercentage / 100.0))) {
+//            if (actualReplication > (numberOfReplications * (skipReplicationsPercentage / 100.0))) {
 //                replicationCallback.accept(actualReplication, sum / actualReplication);
-            }
+//            }
 
             afterExperiment();
         }
 
         afterSimulation();
 
-        simulationState = SimulationState.FINISHED;
+        state = State.FINISHED;
+        notifyStateChange();
     }
 
     public void stop() {
-        if (simulationState == SimulationState.STOPPED) {
+        if (state == State.STOPPED) {
             throw new IllegalStateException("Simulation already stopped.");
         }
-        simulationState = SimulationState.STOPPED;
+        state = State.STOPPED;
         notifyStateChange();
     }
 
     public void pause() {
-        if (simulationState == SimulationState.PAUSED) {
+        if (state == State.PAUSED) {
             throw new IllegalStateException("Simulation already paused.");
         }
-        simulationState = SimulationState.PAUSED;
+        state = State.PAUSED;
         notifyStateChange();
     }
 
     public void resume() {
         synchronized (lock) {
-            simulationState = SimulationState.RUNNING;
+            state = State.RUNNING;
             lock.notifyAll();
             notifyStateChange();
         }
     }
 
-    public void setDataConsumer(Consumer<EventSimulationData> consumer) {
+    public void setDataConsumer(Consumer<? super SimulationData> consumer) {
         this.dataConsumer = consumer;
     }
 
@@ -89,7 +101,7 @@ public abstract class MonteCarlo {
     protected abstract void beforeExperiment();
     protected abstract void afterExperiment();
 
-    public enum SimulationState {
+    public enum State {
         CREATED,
         RUNNING,
         STOPPED,

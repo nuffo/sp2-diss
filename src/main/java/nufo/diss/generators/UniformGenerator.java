@@ -17,7 +17,7 @@ public class UniformGenerator extends Generator {
 
     @Override
     public int nextInt() {
-        return (int) (rand.nextInt((int) (max - min)) + min);
+        return rand.nextInt((int)min, (int)max);
     }
 
     @Override

@@ -7,7 +7,7 @@ public abstract class EventSimulation extends MonteCarlo {
     protected double currentTime;
     private final double maxTime;
     private TimeMultiplier timeMultiplier;
-    private final ExecutionMode executionMode;
+    private ExecutionMode executionMode;
 
     protected EventSimulation(int numberOfReplications, int skipReplicationsPercentage, ExecutionMode executionMode, double maxTime) {
         super(numberOfReplications, skipReplicationsPercentage);
@@ -20,20 +20,15 @@ public abstract class EventSimulation extends MonteCarlo {
     }
 
     public void simulate() {
-        currentTime = 0.0;
-        eventCalendar.clear();
-
-        if (executionMode == ExecutionMode.REAL_TIME) {
-            addEvent(new SystemEvent(this, currentTime));
-        }
+        addEvent(new SystemEvent(this, currentTime));
 
         while (!eventCalendar.isEmpty() && currentTime < maxTime) {
-            if (simulationState == SimulationState.STOPPED) {
+            if (state == State.STOPPED) {
                 break;
             }
 
             synchronized (lock) {
-                while (simulationState == SimulationState.PAUSED) {
+                while (state == State.PAUSED) {
                     try {
                         lock.wait();
                     } catch (InterruptedException e) {
@@ -57,6 +52,10 @@ public abstract class EventSimulation extends MonteCarlo {
         eventCalendar.add(event);
     }
 
+    public void resetEventCalendar() {
+        eventCalendar.clear();
+    }
+
     private void setCurrentTime(double time) {
         currentTime = time;
         notifyStateChange();
@@ -72,6 +71,14 @@ public abstract class EventSimulation extends MonteCarlo {
 
     public void setTimeMultiplier(TimeMultiplier timeMultiplier) {
         this.timeMultiplier = timeMultiplier;
+    }
+
+    public void setExecutionMode(ExecutionMode executionMode) {
+        this.executionMode = executionMode;
+    }
+
+    public ExecutionMode getExecutionMode() {
+        return executionMode;
     }
 
     public void experiment() {
@@ -109,15 +116,6 @@ public abstract class EventSimulation extends MonteCarlo {
 
         public double getValue() {
             return value;
-        }
-
-        public static TimeMultiplier fromValue(double value) {
-            for (TimeMultiplier timeMultiplier : values()) {
-                if (Double.compare(timeMultiplier.value, value) == 0) {
-                    return timeMultiplier;
-                }
-            }
-            throw new IllegalArgumentException("Unknown time multiplier: " + value);
         }
 
         public static TimeMultiplier fromString(String value) {

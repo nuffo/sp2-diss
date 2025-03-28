@@ -1,22 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="ArtifactsWorkspaceSettings">
+    <artifacts-to-build>
+      <artifact name="sp2:jar" />
+    </artifacts-to-build>
+  </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="65a78401-d81a-4315-9e92-3343760b9d97" name="Changes" comment="Generators added">
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Controller.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/EventSimulation.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/EventSimulationData.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/GUI.form" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/GUI.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/MonteCarlo.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Station.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Statistics.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/SystemEvent.java" afterDir="false" />
+    <list default="true" id="65a78401-d81a-4315-9e92-3343760b9d97" name="Changes" comment="progress">
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/FurnitureSimulation.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/SimulationData.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/Controller.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Controller.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/Event.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Event.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/EventSimulation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/EventSimulation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/EventSimulationData.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/GUI.form" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/GUI.form" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/GUI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/GUI.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/MonteCarlo.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/MonteCarlo.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/Station.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/Station.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/SystemEvent.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/SystemEvent.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/GeneratorsTestFilesMaker.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/GeneratorsTestFilesMaker.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/UniformGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nufo/diss/generators/UniformGenerator.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +69,7 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;Application.GeneratorsTestFilesMaker.executor&quot;: &quot;Run&quot;,
     &quot;Application.InputAnalyzerFilesGenerator.executor&quot;: &quot;Run&quot;,
     &quot;Application.Main.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
@@ -73,6 +83,9 @@
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;onboarding.tips.debug.path&quot;: &quot;/Users/nufo/IdeaProjects/sp2_diss/src/main/java/nufo/diss/Main.java&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Artifacts&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
@@ -103,7 +116,8 @@
       <updated>1742378658268</updated>
       <workItem from="1742378659323" duration="19914000" />
       <workItem from="1742663864255" duration="22309000" />
-      <workItem from="1742817685739" duration="29292000" />
+      <workItem from="1742817685739" duration="88788000" />
+      <workItem from="1743146176540" duration="251000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <option name="closed" value="true" />
@@ -145,7 +159,15 @@
       <option name="project" value="LOCAL" />
       <updated>1742663951438</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="progress">
+      <option name="closed" value="true" />
+      <created>1742940670654</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1742940670654</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -168,6 +190,23 @@
     <MESSAGE value="Assignment added" />
     <MESSAGE value="Assignment update" />
     <MESSAGE value="Generators added" />
-    <option name="LAST_COMMIT_MESSAGE" value="Generators added" />
+    <MESSAGE value="progress" />
+    <option name="LAST_COMMIT_MESSAGE" value="progress" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/nufo/diss/GUI.java</url>
+          <line>141</line>
+          <option name="timeStamp" value="15" />
+        </line-breakpoint>
+        <line-breakpoint type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/nufo/diss/GUI.java</url>
+          <line>102</line>
+          <option name="timeStamp" value="16" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

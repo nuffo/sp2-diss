@@ -21,9 +21,9 @@ public class Station extends EventSimulation {
     @Override
     protected void notifyStateChange() {
         if (dataConsumer != null) {
-            dataConsumer.accept(new EventSimulationData(
+            dataConsumer.accept(new SimulationData(
                     currentTime,
-                    simulationState
+                    state
             ));
         }
     }
@@ -135,9 +135,9 @@ public class Station extends EventSimulation {
         @Override
         public void execute() {
             System.out.println("Customer Arrival Event");
-            Station station = (Station) eventSimulation;
+            Station station = (Station) simulation;
 
-            StationCustomer customer = new StationCustomer(eventSimulation.getCurrentTime());
+            StationCustomer customer = new StationCustomer(simulation.getCurrentTime());
 
             if (station.isService()) {
                 station.addCustomerToQueue(customer);
@@ -163,7 +163,7 @@ public class Station extends EventSimulation {
         @Override
         public void execute() {
             System.out.println("Service Start Event");
-            Station station = (Station) eventSimulation;
+            Station station = (Station) simulation;
 
             station.addEvent(new ServiceEndEvent(station, station.getNextServiceTime()));
 
@@ -179,7 +179,7 @@ public class Station extends EventSimulation {
         @Override
         public void execute() {
             System.out.println("Service End Event");
-            Station station = (Station) eventSimulation;
+            Station station = (Station) simulation;
 
             if (station.someoneIsWaitingForService()) {
                 station.addEvent(new ServiceStartEvent(station, station.getCurrentTime(), station.serveAnotherCustomer()));

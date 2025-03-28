@@ -11,12 +11,14 @@ public class SystemEvent extends Event {
 
     @Override
     public void execute() {
-        try {
-            Thread.sleep((long) (1000 / eventSimulation.getTimeMultiplier().getValue()));
-        } catch (InterruptedException e) {
-            logger.warning("Thread was interrupted: " + e.getMessage());
-        }
+        if (simulation.getExecutionMode() == EventSimulation.ExecutionMode.REAL_TIME) {
+            try {
+                Thread.sleep((long) (1000 / simulation.getTimeMultiplier().getValue()));
+            } catch (InterruptedException e) {
+                logger.warning("Thread was interrupted: " + e.getMessage());
+            }
 
-        eventSimulation.addEvent(new SystemEvent(eventSimulation, executionTime + 1));
+            simulation.addEvent(new SystemEvent(simulation, executionTime + 1));
+        }
     }
 }

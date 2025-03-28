@@ -10,8 +10,8 @@ public class Controller {
         this.gui = gui;
     }
 
-    public void startSimulation(EventSimulation.TimeMultiplier timeMultiplier) {
-        simulation = new Station(1, 5, EventSimulation.ExecutionMode.REAL_TIME, 12 * 60 * 60);
+    public void startSimulation(int numberOfReplications, int skipReplicationsPercentage, EventSimulation.ExecutionMode executionMode, int groupASize, int groupBSize, int groupCSize, EventSimulation.TimeMultiplier timeMultiplier) {
+        simulation = new FurnitureSimulation(numberOfReplications, skipReplicationsPercentage, executionMode, 249 * 8 * 60 * 60 - 1, groupASize, groupBSize, groupCSize);
         simulation.setTimeMultiplier(timeMultiplier);
         simulation.setDataConsumer(gui.getStateConsumer());
 
@@ -20,11 +20,6 @@ public class Controller {
             protected Void doInBackground() {
                 simulation.run();
                 return null;
-            }
-
-            @Override
-            protected void done() {
-                System.out.println("stopped");
             }
         };
         worker.execute();
@@ -48,7 +43,8 @@ public class Controller {
         simulation.setTimeMultiplier(multiplier);
     }
 
-    public EventSimulation.TimeMultiplier getSimulationTimeMultiplier() {
-        return simulation.getTimeMultiplier();
+    public void setSimulationExecutionMode(EventSimulation.ExecutionMode mode) {
+        if (simulation == null) return;
+        simulation.setExecutionMode(mode);
     }
 }
