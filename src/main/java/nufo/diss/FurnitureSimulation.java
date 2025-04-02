@@ -3,53 +3,68 @@ package nufo.diss;
 import nufo.diss.generators.*;
 
 import java.util.*;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 public class FurnitureSimulation extends EventSimulation{
-    private Queue<Order> newOrdersQueue;
-    private Queue<Order> sawedOrdersQueue;
-    private Queue<Order> soakedOrdersQueue;
-    private Queue<Order> assembledOrdersQueue;
-    private final int carpenterGroupASize;
-    private final int carpenterGroupBSize;
-    private final int carpenterGroupCSize;
-    private List<Carpenter> carpenterGroupA;
-    private List<Carpenter> carpenterGroupB;
-    private List<Carpenter> carpenterGroupC;
-    private List<Workplace> workplaces;
+    private final Map<Order.State, Queue<Order>> orderQueues;
+    private final Map<Carpenter.Group, Integer> carpentersGroupSizes;
+    private final Map<Carpenter.Group, List<Carpenter>> carpenterGroups;
+    private final List<Workplace> workplaces;
     private Random orderTypeProbabilityGenerator;
     private ExponentialGenerator orderArrivalGenerator;
     private TriangularGenerator timeToMoveBetweenWorkplaceAndWarehouseGenerator;
     private TriangularGenerator timeToPrepareMaterialInWarehouseGenerator;
     private TriangularGenerator timeToMoveBetweenWorkplacesGenerator;
-    private EmpiricalGenerator timeToSawingTablePartsGenerator;
-    private UniformGenerator timeToSoakingTablePartsGenerator;
-    private UniformGenerator timeToAssemblyTableGenerator;
-    private UniformGenerator timeToSawingChairPartsGenerator;
-    private UniformGenerator timeToSoakingChairPartsGenerator;
-    private UniformGenerator timeToAssemblyChairGenerator;
-    private UniformGenerator timeToSawingWardrobePartsGenerator;
-    private UniformGenerator timeToSoakingWardrobePartsGenerator;
-    private UniformGenerator timeToAssemblyWardrobeGenerator;
-    private UniformGenerator timeToFittingsInstallationWardrobeGenerator;
+
+    private Map<Order.Type, Map<Order.State, Generator>> actionTimeGenerators;
+
+    private final FurnitureSimulationReplicationStatistics replicationStatistics;
+    private final FurnitureSimulationExperimentStatistics experimentStatistics;
 
     private int numberOfArrivedOrders;
     private int numberOfDoneOrders;
 
     protected FurnitureSimulation(
             int numberOfReplications,
-            int skipReplicationsPercentage,
             ExecutionMode executionMode,
             double maxTime,
             int carpenterGroupASize,
             int carpenterGroupBSize,
             int carpenterGroupCSize
     ) {
-        super(numberOfReplications, skipReplicationsPercentage, executionMode, maxTime);
+        super(numberOfReplications, executionMode, maxTime);
 
-        this.carpenterGroupASize = carpenterGroupASize;
-        this.carpenterGroupBSize = carpenterGroupBSize;
-        this.carpenterGroupCSize = carpenterGroupCSize;
+        carpentersGroupSizes = new Hashtable<>();
+        carpentersGroupSizes.put(Carpenter.Group.A, carpenterGroupASize);
+        carpentersGroupSizes.put(Carpenter.Group.B, carpenterGroupBSize);
+        carpentersGroupSizes.put(Carpenter.Group.C, carpenterGroupCSize);
+
+        orderQueues = new Hashtable<>();
+        for (Order.State state : Order.State.queueValues()) {
+            orderQueues.put(state, new LinkedList<>());
+        }
+
+        workplaces = new LinkedList<>();
+
+        carpenterGroups = new Hashtable<>();
+
+        replicationStatistics = new FurnitureSimulationReplicationStatistics();
+        experimentStatistics = new FurnitureSimulationExperimentStatistics();
+    }
+
+    public static class FurnitureSimulationReplicationStatistics {
+        private final Statistics orderWorkingTime = new Statistics();
+        private final Statistics notYetStartedWorkOrders = new Statistics();
+        private final Map<Carpenter.Group, Statistics> groupWorkloads = new Hashtable<>();
+        private final Map<Carpenter, Statistics> carpenterWorkloads = new Hashtable<>();
+    }
+
+    public static class FurnitureSimulationExperimentStatistics {
+        private final Statistics orderWorkingTime = new Statistics();
+
+        public void reset() {
+            orderWorkingTime.reset();
+        }
     }
 
     public static class Carpenter {
@@ -59,16 +74,32 @@ public class FurnitureSimulation extends EventSimulation{
         private final Group group;
         public static int carpenterId = 0;
         private final int id = ++carpenterId;
+        private double workTime = 0.0;
+        private double lastWorkStartTime = 0.0;
 
         Carpenter(Group group) {
             this.group = group;
+        }
+
+        public int getId() {
+            return id;
         }
 
         public State getState() {
             return state;
         }
 
-        public void setState(State state) {
+        public void setState(State state , double time) {
+            if (this.state == state) {
+                throw new IllegalStateException("State is already set: " + state);
+            }
+
+            if (state == State.WORKING) {
+                lastWorkStartTime = time;
+            } else if (state == State.FREE) {
+                workTime += time - lastWorkStartTime;
+            }
+
             this.state = state;
         }
 
@@ -92,13 +123,17 @@ public class FurnitureSimulation extends EventSimulation{
             return group;
         }
 
-        public static void resetCarpenterId() {
-            carpenterId = 0;
+        public void reset() {
+            state = State.FREE;
+            position = Position.WAREHOUSE;
+            workplace = null;
+            workTime = 0.0;
+            lastWorkStartTime = 0.0;
         }
 
         public enum State {
             FREE,
-            BUSY
+            WORKING
         }
 
         public enum Position {
@@ -112,89 +147,36 @@ public class FurnitureSimulation extends EventSimulation{
 
         @Override
         public String toString() {
-            return "Carpenter( " +
-                    "state: " + state +
+            return "ID: " + id +
+                    ", state: " + state +
+                    (workplace != null ? ", workplaceID: " + workplace.getId() : "") +
                     ", position: " + position +
-                    (workplace != null ? ", workplaceId: " + workplace.getId() : "") +
-                    ", group: " + group +
-                    " )";
+                    ", group: " + group;
         }
-    }
 
-    public static class FurnitureSimulationData extends SimulationData {
-        private final int numberOfArrivedOrders;
-        private final int numberOfDoneOrders;
-        private final int numberOfNewOrdersInQueue;
-        private final int numberOfSawedOrdersInQueue;
-        private final int numberOfSoakedOrdersInQueue;
-        private final int numberOfAssembledOrdersInQueue;
-        private final String[] workplaces;
-        private final String[] carpenters;
+        public Data toData() {
+            return new Data(getId(), getGroup(), getState(), getPosition(), getWorkplace() != null ? getWorkplace().getId() : null);
+        }
 
-        FurnitureSimulationData(
-                double currentTime,
+        public record Data(
+                int id,
+                Group group,
                 State state,
-                int numberOfArrivedOrders,
-                int numberOfDoneOrders,
-                int numberOfNewOrdersInQueue,
-                int numberOfSawedOrdersInQueue,
-                int numberOfSoakedOrdersInQueue,
-                int numberOfAssembledOrdersInQueue,
-                String[] workplaces,
-                String[] carpenters
-        ) {
-            super(currentTime, state);
-            this.numberOfArrivedOrders = numberOfArrivedOrders;
-            this.numberOfDoneOrders = numberOfDoneOrders;
-            this.numberOfNewOrdersInQueue = numberOfNewOrdersInQueue;
-            this.numberOfSawedOrdersInQueue = numberOfSawedOrdersInQueue;
-            this.numberOfSoakedOrdersInQueue = numberOfSoakedOrdersInQueue;
-            this.numberOfAssembledOrdersInQueue = numberOfAssembledOrdersInQueue;
-            this.workplaces = workplaces;
-            this.carpenters = carpenters;
-        }
-
-        public int getNumberOfArrivedOrders() {
-            return numberOfArrivedOrders;
-        }
-
-        public int getNumberOfDoneOrders() {
-            return numberOfDoneOrders;
-        }
-
-        public int getNumberOfNewOrdersInQueue() {
-            return numberOfNewOrdersInQueue;
-        }
-
-        public int getNumberOfSawedOrdersInQueue() {
-            return numberOfSawedOrdersInQueue;
-        }
-
-        public int getNumberOfSoakedOrdersInQueue() {
-            return numberOfSoakedOrdersInQueue;
-        }
-
-        public int getNumberOfAssembledOrdersInQueue() {
-            return numberOfAssembledOrdersInQueue;
-        }
-
-        public String[] getWorkplaces() {
-            return workplaces;
-        }
-
-        public String[] getCarpenters() {
-            return carpenters;
-        }
+                Position position,
+                Integer workplaceId
+        ) { }
     }
 
     public static class Order {
         private final Type type;
         private State state;
         private Workplace workplace;
+        private final double arrivalTime;
 
-        Order(Type type) {
+        Order(Type type, double arrivalTime) {
             this.type = type;
             this.state = State.NEW;
+            this.arrivalTime = arrivalTime;
         }
 
         public Type getType() {
@@ -220,6 +202,10 @@ public class FurnitureSimulation extends EventSimulation{
             return workplace;
         }
 
+        public double getArrivalTime() {
+            return arrivalTime;
+        }
+
         public enum Type {
             TABLE,
             CHAIR,
@@ -235,7 +221,11 @@ public class FurnitureSimulation extends EventSimulation{
             ASSEMBLING,
             ASSEMBLED,
             FITTINGS_INSTALLATION,
-            DONE
+            DONE;
+
+            public static State[] queueValues() {
+                return new State[] {NEW, SAWED, SOAKED, ASSEMBLED};
+            }
         }
     }
 
@@ -280,7 +270,6 @@ public class FurnitureSimulation extends EventSimulation{
             if (this.carpenter != null) {
                 throw new IllegalStateException("Only one carpenter can be in workplace.");
             }
-            carpenter.setWorkplace(this);
             this.carpenter = carpenter;
         }
 
@@ -297,32 +286,62 @@ public class FurnitureSimulation extends EventSimulation{
 
         @Override
         public String toString() {
-            return "Workplace( id:"+id+", order: "+(order != null ? "Order( type: "+order.getType()+", state: "+order.getState()+" )" : "FREE")+(carpenter != null ? ", carpenter: Carpenter( group: "+carpenter.getGroup()+", state: "+carpenter.getState()+" )" : "")+" )";
+            return "ID: " + id +
+                    ", order: " + (order != null ? "Order( type: "+order.getType()+", state: "+order.getState()+" )" : "NONE") +
+                    (carpenter != null ? ", carpenterID: " + carpenter.getId() : "");
         }
     }
 
+    public record EventData(
+            double currentTime,
+            int numberOfArrivedOrders,
+            int numberOfDoneOrders,
+            Map<Order.State, Integer> queueSizes,
+            String[] workplaces,
+            String[] carpenters,
+            Statistics orderWorkingTime
+    ) { }
+
+    public record ReplicationData(
+         int numberOfDoneReplications,
+         Statistics.Data orderWorkingTime,
+         Statistics.Data notYetStartedWorkOrders,
+         Map<Carpenter.Group, Statistics.Data> carpenterGroupWorkloads,
+         Map<Carpenter.Data, Statistics.Data> carpenterWorkloads
+    ) { }
+
     @Override
-    protected void notifyStateChange() {
-        if (dataConsumer != null) {
-            String[] workplaces = this.workplaces.stream().map(Workplace::toString).toArray(String[]::new);
-
-            String[] carpenters = Stream.of(carpenterGroupA, carpenterGroupB, carpenterGroupC)
-                    .flatMap(List::stream)
-                    .map(Carpenter::toString)
-                    .toArray(String[]::new);
-
-            dataConsumer.accept(new FurnitureSimulationData(
-                    currentTime,
-                    state,
-                    numberOfArrivedOrders,
-                    numberOfDoneOrders,
-                    newOrdersQueue.size(),
-                    sawedOrdersQueue.size(),
-                    soakedOrdersQueue.size(),
-                    assembledOrdersQueue.size(),
-                    workplaces,
-                    carpenters
-            ));
+    protected void notifyStateChange(StateChangeType stateChangeType) {
+        if (consumer != null) {
+            consumer.accept(switch (stateChangeType) {
+                case EXPERIMENT -> new ConsumerData(stateChangeType, new ReplicationData(
+                        doneReplications,
+                        replicationStatistics.orderWorkingTime.toData(),
+                        replicationStatistics.notYetStartedWorkOrders.toData(),
+                        replicationStatistics.groupWorkloads.entrySet()
+                                .stream()
+                                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toData())),
+                        replicationStatistics.carpenterWorkloads.entrySet()
+                                .stream()
+                                .collect(Collectors.toMap(e -> e.getKey().toData(), e -> e.getValue().toData()))
+                ));
+                case EVENT -> new ConsumerData(stateChangeType, new EventData(
+                        currentTime,
+                        numberOfArrivedOrders,
+                        numberOfDoneOrders,
+                        orderQueues.entrySet()
+                                .stream()
+                                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size())),
+                        this.workplaces.stream().map(Workplace::toString).toArray(String[]::new),
+                        carpenterGroups.values().stream()
+                                .flatMap(List::stream)
+                                .sorted(Comparator.comparingInt(Carpenter::getId))
+                                .map(Carpenter::toString)
+                                .toArray(String[]::new),
+                        experimentStatistics.orderWorkingTime
+                ));
+                case STATE -> new ConsumerData(stateChangeType, state);
+            });
         }
     }
 
@@ -335,41 +354,38 @@ public class FurnitureSimulation extends EventSimulation{
         timeToPrepareMaterialInWarehouseGenerator = new TriangularGenerator(300, 900, 500);
         timeToMoveBetweenWorkplacesGenerator = new TriangularGenerator(120, 500, 150);
 
-        timeToSawingTablePartsGenerator = new EmpiricalGenerator(
+        actionTimeGenerators = new Hashtable<>();
+        for (Order.Type orderType : Order.Type.values()) {
+            actionTimeGenerators.put(orderType, new Hashtable<>());
+        }
+
+        actionTimeGenerators.get(Order.Type.TABLE).put(Order.State.SAWING, new EmpiricalGenerator(
                 Arrays.asList(10.0 * 60, 25.0 * 60),
                 Arrays.asList(25.0 * 60, 50.0 * 60),
                 Arrays.asList(0.6, 0.4),
                 Generator.Mode.CONTINUOUS
-        );
-        timeToSoakingTablePartsGenerator = new UniformGenerator(200 * 60, 610 * 60, Generator.Mode.CONTINUOUS);
-        timeToAssemblyTableGenerator = new UniformGenerator(30 * 60, 60 * 60, Generator.Mode.CONTINUOUS);
-        timeToSawingChairPartsGenerator = new UniformGenerator(12 * 60, 16 * 60, Generator.Mode.CONTINUOUS);
-        timeToSoakingChairPartsGenerator = new UniformGenerator(210 * 60, 540 * 60, Generator.Mode.CONTINUOUS);
-        timeToAssemblyChairGenerator = new UniformGenerator(14 * 60, 24 * 60, Generator.Mode.CONTINUOUS);
-        timeToSawingWardrobePartsGenerator = new UniformGenerator(15 * 60, 80 * 60, Generator.Mode.CONTINUOUS);
-        timeToSoakingWardrobePartsGenerator = new UniformGenerator(600 * 60, 700 * 60, Generator.Mode.CONTINUOUS);
-        timeToAssemblyWardrobeGenerator = new UniformGenerator(35 * 60, 75 * 60, Generator.Mode.CONTINUOUS);
-        timeToFittingsInstallationWardrobeGenerator = new UniformGenerator(15 * 60, 25 * 60, Generator.Mode.CONTINUOUS);
+        ));
+        actionTimeGenerators.get(Order.Type.TABLE).put(Order.State.SOAKING, new UniformGenerator(200 * 60, 610 * 60, Generator.Mode.CONTINUOUS));
+        actionTimeGenerators.get(Order.Type.TABLE).put(Order.State.ASSEMBLING, new UniformGenerator(30 * 60, 60 * 60, Generator.Mode.CONTINUOUS));
 
-        newOrdersQueue = new LinkedList<>();
-        sawedOrdersQueue = new LinkedList<>();
-        soakedOrdersQueue = new LinkedList<>();
-        assembledOrdersQueue = new LinkedList<>();
-        workplaces = new LinkedList<>();
+        actionTimeGenerators.get(Order.Type.CHAIR).put(Order.State.SAWING, new UniformGenerator(12 * 60, 16 * 60, Generator.Mode.CONTINUOUS));
+        actionTimeGenerators.get(Order.Type.CHAIR).put(Order.State.SOAKING, new UniformGenerator(210 * 60, 540 * 60, Generator.Mode.CONTINUOUS));
+        actionTimeGenerators.get(Order.Type.CHAIR).put(Order.State.ASSEMBLING, new UniformGenerator(14 * 60, 24 * 60, Generator.Mode.CONTINUOUS));
 
-        carpenterGroupA = new LinkedList<>();
-        for (int i = 0; i < carpenterGroupASize; i++) {
-            carpenterGroupA.add(new Carpenter(Carpenter.Group.A));
-        }
+        actionTimeGenerators.get(Order.Type.WARDROBE).put(Order.State.SAWING, new UniformGenerator(15 * 60, 80 * 60, Generator.Mode.CONTINUOUS));
+        actionTimeGenerators.get(Order.Type.WARDROBE).put(Order.State.SOAKING, new UniformGenerator(600 * 60, 700 * 60, Generator.Mode.CONTINUOUS));
+        actionTimeGenerators.get(Order.Type.WARDROBE).put(Order.State.ASSEMBLING, new UniformGenerator(35 * 60, 75 * 60, Generator.Mode.CONTINUOUS));
+        actionTimeGenerators.get(Order.Type.WARDROBE).put(Order.State.FITTINGS_INSTALLATION, new UniformGenerator(15 * 60, 25 * 60, Generator.Mode.CONTINUOUS));
 
-        carpenterGroupB = new LinkedList<>();
-        for (int i = 0; i < carpenterGroupBSize; i++) {
-            carpenterGroupB.add(new Carpenter(Carpenter.Group.B));
-        }
-
-        carpenterGroupC = new LinkedList<>();
-        for (int i = 0; i < carpenterGroupCSize; i++) {
-            carpenterGroupC.add(new Carpenter(Carpenter.Group.C));
+        for (Carpenter.Group group : Carpenter.Group.values()) {
+            List<Carpenter> carpenters = new LinkedList<>();
+            for (int i = 0; i < carpentersGroupSizes.get(group); i++) {
+                Carpenter carpenter = new Carpenter(group);
+                carpenters.add(carpenter);
+                replicationStatistics.carpenterWorkloads.put(carpenter, new Statistics());
+            }
+            carpenterGroups.put(group, carpenters);
+            replicationStatistics.groupWorkloads.put(group, new Statistics());
         }
     }
 
@@ -384,18 +400,42 @@ public class FurnitureSimulation extends EventSimulation{
         numberOfArrivedOrders = 0;
         numberOfDoneOrders = 0;
         resetEventCalendar();
+
+        for(Order.State state : Order.State.queueValues()) {
+            orderQueues.get(state).clear();
+        }
+
+        workplaces.clear();
         Workplace.resetWorkplaceId();
-        Carpenter.resetCarpenterId();
+
+        for (Carpenter.Group group : Carpenter.Group.values()) {
+            for (Carpenter carpenter: carpenterGroups.get(group)) {
+                carpenter.reset();
+            }
+        }
+
         addEvent(new OrderArrivalEvent(this, getNextOrderArrivalTime()));
+
+        experimentStatistics.reset();
     }
 
     @Override
     protected void afterExperiment() {
+        replicationStatistics.orderWorkingTime.addValue(experimentStatistics.orderWorkingTime.getMean());
+        replicationStatistics.notYetStartedWorkOrders.addValue(orderQueues.get(Order.State.NEW).size());
 
+        for (Carpenter.Group group : Carpenter.Group.values()) {
+            List<Carpenter> carpenters = carpenterGroups.get(group);
+            replicationStatistics.groupWorkloads.get(group).addValue(carpenters.stream().mapToDouble(c -> c.workTime).sum() / (currentTime * carpenters.size()));
+
+            for (Carpenter carpenter : carpenters) {
+                replicationStatistics.carpenterWorkloads.get(carpenter).addValue(carpenter.workTime / currentTime);
+            }
+        }
     }
 
-    public Carpenter getFreeCarpenterFromGroup(List<Carpenter> group) {
-        for (Carpenter carpenter : group) {
+    public Carpenter getFreeCarpenterFromGroup(Carpenter.Group group) {
+        for (Carpenter carpenter : carpenterGroups.get(group)) {
             if (carpenter.getState() == Carpenter.State.FREE) {
                 return carpenter;
             }
@@ -403,51 +443,21 @@ public class FurnitureSimulation extends EventSimulation{
         return null;
     }
 
-    public void addNewOrderToQueue(Order order) {
-        if (!newOrdersQueue.add(order)) {
-            throw new RuntimeException("Something went wrong while adding to new orders queue.");
+    public void addOrderToQueue(Order order) {
+        if (!orderQueues.get(order.getState()).add(order)) {
+            throw new RuntimeException("Something went wrong while adding to orders queue.");
         }
     }
 
-    public Order getNextNewOrderFromQueue() {
-        return newOrdersQueue.poll();
-    }
-
-    public void addSawedOrderToQueue(Order order) {
-        if (!sawedOrdersQueue.add(order)) {
-            throw new RuntimeException("Something went wrong while adding to prepared orders queue.");
-        }
-    }
-
-    public Order getNextSawedOrderFromQueue() {
-        return sawedOrdersQueue.poll();
-    }
-
-    public void addSoakedOrderToQueue(Order order) {
-        if (!soakedOrdersQueue.add(order)) {
-            throw new RuntimeException("Something went wrong while adding to soaked orders queue.");
-        }
-    }
-
-    public Order getNextSoakedOrderFromQueue() {
-        return soakedOrdersQueue.poll();
-    }
-
-    public void addAssembledOrderToQueue(Order order) {
-        if (!assembledOrdersQueue.add(order)) {
-            throw new RuntimeException("Something went wrong while adding to assembled orders queue.");
-        }
-    }
-
-    public Order getNextAssembledOrderFromQueue() {
-        return assembledOrdersQueue.poll();
+    public Order getNextOrderFromQueue(Order.State state) {
+        return orderQueues.get(state).poll();
     }
 
     public double getNextOrderArrivalTime() {
         if (orderArrivalGenerator == null) {
             throw new IllegalStateException("Order arrival generator not set.");
         }
-        return currentTime + orderArrivalGenerator.nextDouble();
+        return orderArrivalGenerator.nextDouble();
     }
 
     public double getNextTimeToMoveBetweenWorkplaceAndWarehouse() {
@@ -471,74 +481,8 @@ public class FurnitureSimulation extends EventSimulation{
         return timeToMoveBetweenWorkplacesGenerator.nextDouble();
     }
 
-    public double getNextTimeToSawingTableParts() {
-        if (timeToSawingTablePartsGenerator == null) {
-            throw new IllegalStateException("Time to sawing table parts generator not set.");
-        }
-        return timeToSawingTablePartsGenerator.nextDouble();
-    }
-
-    public double getNextTimeToSoakingTableParts() {
-        if (timeToSoakingTablePartsGenerator == null) {
-            throw new IllegalStateException("Time to soaking table parts generator not set.");
-        }
-        return timeToSoakingTablePartsGenerator.nextDouble();
-    }
-
-    public double getNextTimeToAssemblyTableParts() {
-        if (timeToAssemblyTableGenerator == null) {
-            throw new IllegalStateException("Time to assembly table parts generator not set.");
-        }
-        return timeToAssemblyTableGenerator.nextDouble();
-    }
-
-    public double getNextTimeToSawingChairParts() {
-        if (timeToSawingChairPartsGenerator == null) {
-            throw new IllegalStateException("Time to sawing chair parts generator not set.");
-        }
-        return timeToSawingChairPartsGenerator.nextDouble();
-    }
-
-    public double getNextTimeToSoakingChairParts() {
-        if (timeToSoakingChairPartsGenerator == null) {
-            throw new IllegalStateException("Time to soaking chair parts generator not set.");
-        }
-        return timeToSoakingChairPartsGenerator.nextDouble();
-    }
-
-    public double getNextTimeToAssemblyChairParts() {
-        if (timeToAssemblyChairGenerator == null) {
-            throw new IllegalStateException("Time to assembly chair parts generator not set.");
-        }
-        return timeToAssemblyChairGenerator.nextDouble();
-    }
-
-    public double getNextTimeToSawingWardrobeParts() {
-        if (timeToSawingWardrobePartsGenerator == null) {
-            throw new IllegalStateException("Time to sawing wardrobe parts generator not set.");
-        }
-        return timeToSawingWardrobePartsGenerator.nextDouble();
-    }
-
-    public double getNextTimeToSoakingWardrobeParts() {
-        if (timeToSoakingWardrobePartsGenerator == null) {
-            throw new IllegalStateException("Time to soaking wardrobe parts generator not set.");
-        }
-        return timeToSoakingWardrobePartsGenerator.nextDouble();
-    }
-
-    public double getNextTimeToAssemblyWardrobeParts() {
-        if (timeToAssemblyWardrobeGenerator == null) {
-            throw new IllegalStateException("Time to assembly wardrobe parts generator not set.");
-        }
-        return timeToAssemblyWardrobeGenerator.nextDouble();
-    }
-
-    public double getNextTimeToFittingsInstallationWardrobeParts() {
-        if (timeToFittingsInstallationWardrobeGenerator == null) {
-            throw new IllegalStateException("Time to fitting installation wardrobe parts generator not set.");
-        }
-        return timeToFittingsInstallationWardrobeGenerator.nextDouble();
+    public double getNextActionTime(Order order) {
+        return actionTimeGenerators.get(order.getType()).get(order.getState()).nextDouble();
     }
 
     public void addWorkplace(Workplace workplace) {
@@ -572,18 +516,6 @@ public class FurnitureSimulation extends EventSimulation{
         } else {
             return Order.Type.WARDROBE;
         }
-    }
-
-    public List<Carpenter> getCarpenterGroupA() {
-        return carpenterGroupA;
-    }
-
-    public List<Carpenter> getCarpenterGroupB() {
-        return carpenterGroupB;
-    }
-
-    public List<Carpenter> getCarpenterGroupC() {
-        return carpenterGroupC;
     }
 
     public void incrementNumberOfArrivedOrders() {
@@ -624,20 +556,20 @@ public class FurnitureSimulation extends EventSimulation{
         public void execute() {
             FurnitureSimulation simulation = (FurnitureSimulation) super.simulation;
 
-            Order order = new Order(simulation.getNextOrderType());
+            Order order = new Order(simulation.getNextOrderType(), executionTime);
             simulation.incrementNumberOfArrivedOrders();
 
-            Carpenter freeCarpenter = simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupA());
+            Carpenter freeCarpenter = simulation.getFreeCarpenterFromGroup(Carpenter.Group.A);
             if (freeCarpenter != null) {
                 Workplace workplace = simulation.getFreeWorkplace();
                 workplace.assignOrder(order);
                 workplace.assignCarpenter(freeCarpenter);
-                simulation.addEvent(new FurnitureSawingStartEvent(simulation, simulation.getCurrentTime(), workplace));
+                simulation.addEvent(new FurnitureSawingStartEvent(simulation, executionTime, workplace));
             } else {
-                simulation.addNewOrderToQueue(order);
+                simulation.addOrderToQueue(order);
             }
 
-            simulation.addEvent(new OrderArrivalEvent(simulation, simulation.getNextOrderArrivalTime()));
+            simulation.addEvent(new OrderArrivalEvent(simulation, executionTime + simulation.getNextOrderArrivalTime()));
         }
     }
 
@@ -651,26 +583,26 @@ public class FurnitureSimulation extends EventSimulation{
             FurnitureSimulation simulation = (FurnitureSimulation) super.simulation;
 
             Carpenter carpenter = workplace.getCarpenter();
-            carpenter.setState(Carpenter.State.BUSY);
+
+            carpenter.setState(Carpenter.State.WORKING, executionTime);
 
             Order order = workplace.getOrder();
             order.setState(Order.State.SAWING);
 
-            double sawingTime = switch (order.getType()) {
-                case TABLE -> simulation.getNextTimeToSawingTableParts();
-                case CHAIR -> simulation.getNextTimeToSawingChairParts();
-                case WARDROBE -> simulation.getNextTimeToSawingWardrobeParts();
-            };
-
-            double time = simulation.getCurrentTime() + simulation.getNextTimeToMoveBetweenWorkplaceAndWarehouse() + simulation.getNextTimeToPrepareMaterialInWarehouse() + sawingTime;
+            double endTime = executionTime;
 
             if (carpenter.getPosition() == Carpenter.Position.WORKPLACE) {
-                time += simulation.getNextTimeToMoveBetweenWorkplaceAndWarehouse();
+                endTime += simulation.getNextTimeToMoveBetweenWorkplaceAndWarehouse();
             }
 
-            carpenter.setPosition(Carpenter.Position.WORKPLACE);
+            endTime += simulation.getNextTimeToPrepareMaterialInWarehouse() + simulation.getNextTimeToMoveBetweenWorkplaceAndWarehouse();
 
-            simulation.addEvent(new FurnitureSawingEndEvent(simulation, time, workplace));
+            endTime += simulation.getNextActionTime(order);
+            
+            carpenter.setPosition(Carpenter.Position.WORKPLACE);
+            carpenter.setWorkplace(workplace);
+
+            simulation.addEvent(new FurnitureSawingEndEvent(simulation, endTime, workplace));
         }
     }
 
@@ -685,23 +617,23 @@ public class FurnitureSimulation extends EventSimulation{
 
             Order order = workplace.getOrder();
             order.setState(Order.State.SAWED);
-            workplace.getCarpenter().setState(Carpenter.State.FREE);
+            workplace.getCarpenter().setState(Carpenter.State.FREE, executionTime);
             workplace.unassignCarpenter();
 
-            Carpenter freeCarpenter = simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupC());
+            Carpenter freeCarpenter = simulation.getFreeCarpenterFromGroup(Carpenter.Group.C);
             if (freeCarpenter != null) {
                 workplace.assignCarpenter(freeCarpenter);
-                simulation.addEvent(new FurnitureSoakingStartEvent(simulation, simulation.getCurrentTime(), workplace));
+                simulation.addEvent(new FurnitureSoakingStartEvent(simulation, executionTime, workplace));
             } else {
-                simulation.addSawedOrderToQueue(order);
+                simulation.addOrderToQueue(order);
             }
 
-            Order nextNewOrder = simulation.getNextNewOrderFromQueue();
+            Order nextNewOrder = simulation.getNextOrderFromQueue(Order.State.NEW);
             if (nextNewOrder != null) {
                 Workplace freeWorkplace = simulation.getFreeWorkplace();
                 freeWorkplace.assignOrder(nextNewOrder);
-                freeWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupA()));
-                simulation.addEvent(new FurnitureSawingStartEvent(simulation, simulation.getCurrentTime(), freeWorkplace));
+                freeWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(Carpenter.Group.A));
+                simulation.addEvent(new FurnitureSawingStartEvent(simulation, executionTime, freeWorkplace));
             }
         }
     }
@@ -716,19 +648,17 @@ public class FurnitureSimulation extends EventSimulation{
             FurnitureSimulation simulation = (FurnitureSimulation) super.simulation;
 
             Carpenter carpenter = workplace.getCarpenter();
-            carpenter.setState(Carpenter.State.BUSY);
+            carpenter.setState(Carpenter.State.WORKING, executionTime);
 
             Order order = workplace.getOrder();
             order.setState(Order.State.SOAKING);
 
-            double endTime = switch (order.getType()) {
-                case TABLE -> simulation.getNextTimeToSoakingTableParts();
-                case CHAIR -> simulation.getNextTimeToSoakingChairParts();
-                case WARDROBE -> simulation.getNextTimeToSoakingWardrobeParts();
-            };
+            double endTime = simulation.getNextActionTime(order);
 
-            endTime += simulation.getCurrentTime() + simulation.getCarpenterMoveTime(carpenter, workplace);
+            endTime += executionTime + simulation.getCarpenterMoveTime(carpenter, workplace);
 
+            carpenter.setPosition(Carpenter.Position.WORKPLACE);
+            carpenter.setWorkplace(workplace);
             simulation.addEvent(new FurnitureSoakingEndEvent(simulation, endTime, workplace));
         }
     }
@@ -742,31 +672,31 @@ public class FurnitureSimulation extends EventSimulation{
         public void execute() {
             FurnitureSimulation simulation = (FurnitureSimulation) super.simulation;
 
-            workplace.getCarpenter().setState(Carpenter.State.FREE);
+            workplace.getCarpenter().setState(Carpenter.State.FREE, executionTime);
 
             Order order = workplace.getOrder();
             order.setState(Order.State.SOAKED);
             workplace.unassignCarpenter();
 
-            Carpenter freeCarpenter = simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupB());
+            Carpenter freeCarpenter = simulation.getFreeCarpenterFromGroup(Carpenter.Group.B);
             if (freeCarpenter != null) {
                 workplace.assignCarpenter(freeCarpenter);
                 simulation.addEvent(new FurnitureAssemblingStartEvent(simulation, simulation.getCurrentTime(), workplace));
             } else {
-                simulation.addSoakedOrderToQueue(order);
+                simulation.addOrderToQueue(order);
             }
 
-            Order nextAssembledOrder = simulation.getNextAssembledOrderFromQueue();
+            Order nextAssembledOrder = simulation.getNextOrderFromQueue(Order.State.ASSEMBLED);
             if (nextAssembledOrder != null) {
                 Workplace nextAssembledOrderWorkplace = nextAssembledOrder.getWorkplace();
-                nextAssembledOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupC()));
-                simulation.addEvent(new FurnitureFittingsInstallationStartEvent(simulation, simulation.getCurrentTime(), nextAssembledOrderWorkplace));
+                nextAssembledOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(Carpenter.Group.C));
+                simulation.addEvent(new FurnitureFittingsInstallationStartEvent(simulation, executionTime, nextAssembledOrderWorkplace));
             } else {
-                Order nextSawedOrder = simulation.getNextSawedOrderFromQueue();
+                Order nextSawedOrder = simulation.getNextOrderFromQueue(Order.State.SAWED);
                 if (nextSawedOrder != null) {
                     Workplace nextSawedOrderWorkplace = nextSawedOrder.getWorkplace();
-                    nextSawedOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupC()));
-                    simulation.addEvent(new FurnitureSoakingStartEvent(simulation, simulation.getCurrentTime(), nextSawedOrderWorkplace));
+                    nextSawedOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(Carpenter.Group.C));
+                    simulation.addEvent(new FurnitureSoakingStartEvent(simulation, executionTime, nextSawedOrderWorkplace));
                 }
             }
         }
@@ -785,16 +715,14 @@ public class FurnitureSimulation extends EventSimulation{
             order.setState(Order.State.ASSEMBLING);
 
             Carpenter carpenter = workplace.getCarpenter();
-            carpenter.setState(Carpenter.State.BUSY);
+            carpenter.setState(Carpenter.State.WORKING, executionTime);
 
-            double endTime = switch (order.getType()) {
-                case TABLE -> simulation.getNextTimeToAssemblyTableParts();
-                case CHAIR -> simulation.getNextTimeToAssemblyChairParts();
-                case WARDROBE -> simulation.getNextTimeToAssemblyWardrobeParts();
-            };
+            double endTime = simulation.getNextActionTime(order);
 
-            endTime += simulation.getCurrentTime() + simulation.getCarpenterMoveTime(carpenter, workplace);
+            endTime += executionTime + simulation.getCarpenterMoveTime(carpenter, workplace);
 
+            carpenter.setPosition(Carpenter.Position.WORKPLACE);
+            carpenter.setWorkplace(workplace);
             simulation.addEvent(new FurnitureAssemblingEndEvent(simulation, endTime, workplace));
         }
     }
@@ -808,7 +736,7 @@ public class FurnitureSimulation extends EventSimulation{
         public void execute() {
             FurnitureSimulation simulation = (FurnitureSimulation) super.simulation;
 
-            workplace.getCarpenter().setState(Carpenter.State.FREE);
+            workplace.getCarpenter().setState(Carpenter.State.FREE, executionTime);
             workplace.unassignCarpenter();
 
             Order order = workplace.getOrder();
@@ -816,24 +744,25 @@ public class FurnitureSimulation extends EventSimulation{
             if (order.getType() == Order.Type.WARDROBE) {
                 order.setState(Order.State.ASSEMBLED);
 
-                Carpenter freeCarpenter = simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupC());
+                Carpenter freeCarpenter = simulation.getFreeCarpenterFromGroup(Carpenter.Group.C);
                 if (freeCarpenter != null) {
                     workplace.assignCarpenter(freeCarpenter);
-                    simulation.addEvent(new FurnitureFittingsInstallationStartEvent(simulation, simulation.getCurrentTime(), workplace));
+                    simulation.addEvent(new FurnitureFittingsInstallationStartEvent(simulation, executionTime, workplace));
                 } else {
-                    simulation.addAssembledOrderToQueue(order);
+                    simulation.addOrderToQueue(order);
                 }
             } else {
                 order.setState(Order.State.DONE);
                 simulation.incrementNumberOfDoneOrders();
                 workplace.unassignOrder();
+                simulation.experimentStatistics.orderWorkingTime.addValue(executionTime - order.getArrivalTime());
             }
 
-            Order nextSoakedOrder = simulation.getNextSoakedOrderFromQueue();
+            Order nextSoakedOrder = simulation.getNextOrderFromQueue(Order.State.SOAKED);
             if (nextSoakedOrder != null) {
                 Workplace nextSoakedOrderWorkplace = nextSoakedOrder.getWorkplace();
-                nextSoakedOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupB()));
-                simulation.addEvent(new FurnitureAssemblingStartEvent(simulation, simulation.getCurrentTime(), nextSoakedOrderWorkplace));
+                nextSoakedOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(Carpenter.Group.B));
+                simulation.addEvent(new FurnitureAssemblingStartEvent(simulation, executionTime, nextSoakedOrderWorkplace));
             }
         }
     }
@@ -848,7 +777,7 @@ public class FurnitureSimulation extends EventSimulation{
             FurnitureSimulation simulation = (FurnitureSimulation) super.simulation;
 
             Carpenter carpenter = workplace.getCarpenter();
-            carpenter.setState(Carpenter.State.BUSY);
+            carpenter.setState(Carpenter.State.WORKING, executionTime);
 
             Order order = workplace.getOrder();
             order.setState(Order.State.FITTINGS_INSTALLATION);
@@ -857,8 +786,10 @@ public class FurnitureSimulation extends EventSimulation{
                 throw new IllegalStateException("Fittings are not installing on this type of furniture : " + order.getType());
             }
 
-            double endTime = simulation.getCurrentTime() + simulation.getNextTimeToFittingsInstallationWardrobeParts() + simulation.getCarpenterMoveTime(carpenter, workplace);
+            double endTime = executionTime + simulation.getNextActionTime(order) + simulation.getCarpenterMoveTime(carpenter, workplace);
 
+            carpenter.setPosition(Carpenter.Position.WORKPLACE);
+            carpenter.setWorkplace(workplace);
             simulation.addEvent(new FurnitureFittingsInstallationEndEvent(simulation, endTime, workplace));
         }
     }
@@ -872,23 +803,25 @@ public class FurnitureSimulation extends EventSimulation{
         public void execute() {
             FurnitureSimulation simulation = (FurnitureSimulation) super.simulation;
 
-            workplace.getCarpenter().setState(Carpenter.State.FREE);
-            workplace.getOrder().setState(Order.State.DONE);
+            workplace.getCarpenter().setState(Carpenter.State.FREE, executionTime);
+            Order order = workplace.getOrder();
+            order.setState(Order.State.DONE);
             simulation.incrementNumberOfDoneOrders();
             workplace.unassignCarpenter();
             workplace.unassignOrder();
+            simulation.experimentStatistics.orderWorkingTime.addValue(executionTime - order.getArrivalTime());
 
-            Order nextAssembledOrder = simulation.getNextAssembledOrderFromQueue();
+            Order nextAssembledOrder = simulation.getNextOrderFromQueue(Order.State.ASSEMBLED);
             if (nextAssembledOrder != null) {
                 Workplace nextAssembledOrderWorkplace = nextAssembledOrder.getWorkplace();
-                nextAssembledOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupC()));
-                simulation.addEvent(new FurnitureFittingsInstallationStartEvent(simulation, simulation.getCurrentTime(), nextAssembledOrderWorkplace));
+                nextAssembledOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(Carpenter.Group.C));
+                simulation.addEvent(new FurnitureFittingsInstallationStartEvent(simulation, executionTime, nextAssembledOrderWorkplace));
             } else {
-                Order nextSawedOrder = simulation.getNextSawedOrderFromQueue();
+                Order nextSawedOrder = simulation.getNextOrderFromQueue(Order.State.SAWED);
                 if (nextSawedOrder != null) {
                     Workplace nextSawedOrderWorkplace = nextSawedOrder.getWorkplace();
-                    nextSawedOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(simulation.getCarpenterGroupC()));
-                    simulation.addEvent(new FurnitureSoakingStartEvent(simulation, simulation.getCurrentTime(), nextSawedOrderWorkplace));
+                    nextSawedOrderWorkplace.assignCarpenter(simulation.getFreeCarpenterFromGroup(Carpenter.Group.C));
+                    simulation.addEvent(new FurnitureSoakingStartEvent(simulation, executionTime, nextSawedOrderWorkplace));
                 }
             }
         }

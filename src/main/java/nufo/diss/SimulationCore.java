@@ -2,21 +2,17 @@ package nufo.diss;
 
 import java.util.function.Consumer;
 
-public abstract class MonteCarlo {
+public abstract class SimulationCore {
     protected State state;
     protected int numberOfReplications;
-    protected int actualReplication;
-//    private final int totalPoints;
-    private final int skipReplicationsPercentage;
+    protected int doneReplications;
     protected final Object lock = new Object();
-    protected Consumer<? super SimulationData> dataConsumer;
+    protected Consumer<ConsumerData> consumer;
 
-    MonteCarlo(int numberOfReplications, int skipReplicationsPercentage) {
+    SimulationCore(int numberOfReplications) {
         this.state = State.CREATED;
         this.numberOfReplications = numberOfReplications;
-        this.actualReplication = 1;
-//        this.totalPoints = totalPoints;
-        this.skipReplicationsPercentage = skipReplicationsPercentage;
+        this.doneReplications = 0;
     }
 
     public void run() {
@@ -24,14 +20,11 @@ public abstract class MonteCarlo {
             throw new IllegalStateException("Simulation already running");
         }
 
-        state = State.RUNNING;
-
-//        double sum = 0;
-//        int step = (numberOfReplications > totalPoints) ? numberOfReplications / totalPoints : 1;
-
         beforeSimulation();
 
-        for (actualReplication = 1; actualReplication <= numberOfReplications; actualReplication++) {
+        setState(State.RUNNING);
+
+        for (int i = 1; i <= numberOfReplications; i++) {
             if (state == State.STOPPED) {
                 break;
             }
@@ -50,49 +43,56 @@ public abstract class MonteCarlo {
             beforeExperiment();
 
             this.experiment();
-
-//            if (actualReplication > (numberOfReplications * (skipReplicationsPercentage / 100.0))) {
-//                replicationCallback.accept(actualReplication, sum / actualReplication);
-//            }
+            doneReplications++;
 
             afterExperiment();
+            notifyStateChange(StateChangeType.EXPERIMENT);
         }
 
         afterSimulation();
 
-        state = State.FINISHED;
-        notifyStateChange();
+        setState(State.FINISHED);
     }
 
     public void stop() {
         if (state == State.STOPPED) {
             throw new IllegalStateException("Simulation already stopped.");
         }
-        state = State.STOPPED;
-        notifyStateChange();
+        setState(State.STOPPED);
     }
 
     public void pause() {
         if (state == State.PAUSED) {
             throw new IllegalStateException("Simulation already paused.");
         }
-        state = State.PAUSED;
-        notifyStateChange();
+        setState(State.PAUSED);
     }
 
     public void resume() {
         synchronized (lock) {
-            state = State.RUNNING;
+            setState(State.RUNNING);
             lock.notifyAll();
-            notifyStateChange();
         }
     }
 
-    public void setDataConsumer(Consumer<? super SimulationData> consumer) {
-        this.dataConsumer = consumer;
+    public void setConsumer(Consumer<ConsumerData> consumer) {
+        this.consumer = consumer;
     }
 
-    protected abstract void notifyStateChange();
+    private void setState(State state) {
+        this.state = state;
+        notifyStateChange(StateChangeType.STATE);
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public int getDoneReplications() {
+        return doneReplications;
+    }
+
+    protected abstract void notifyStateChange(StateChangeType type);
 
     public abstract void experiment();
 
@@ -108,4 +108,12 @@ public abstract class MonteCarlo {
         PAUSED,
         FINISHED
     }
+
+    public enum StateChangeType {
+        EXPERIMENT,
+        EVENT,
+        STATE
+    }
+
+    public record ConsumerData(StateChangeType stateChangeType, Object data) {}
 }

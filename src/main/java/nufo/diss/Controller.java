@@ -1,7 +1,5 @@
 package nufo.diss;
 
-import javax.swing.*;
-
 public class Controller {
     private EventSimulation simulation;
     private final GUI gui;
@@ -10,19 +8,13 @@ public class Controller {
         this.gui = gui;
     }
 
-    public void startSimulation(int numberOfReplications, int skipReplicationsPercentage, EventSimulation.ExecutionMode executionMode, int groupASize, int groupBSize, int groupCSize, EventSimulation.TimeMultiplier timeMultiplier) {
-        simulation = new FurnitureSimulation(numberOfReplications, skipReplicationsPercentage, executionMode, 249 * 8 * 60 * 60 - 1, groupASize, groupBSize, groupCSize);
+    public void startSimulation(int numberOfReplications, EventSimulation.ExecutionMode executionMode, int groupASize, int groupBSize, int groupCSize, EventSimulation.TimeMultiplier timeMultiplier) {
+        simulation = new FurnitureSimulation(numberOfReplications, executionMode, 249 * 8 * 60 * 60 - 1, groupASize, groupBSize, groupCSize);
         simulation.setTimeMultiplier(timeMultiplier);
-        simulation.setDataConsumer(gui.getStateConsumer());
+        simulation.setConsumer(gui.getStateConsumer());
 
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
-            @Override
-            protected Void doInBackground() {
-                simulation.run();
-                return null;
-            }
-        };
-        worker.execute();
+        Thread simulationThread = new Thread(() -> simulation.run());
+        simulationThread.start();
     }
 
     public void stopSimulation() {

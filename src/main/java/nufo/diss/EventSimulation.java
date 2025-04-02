@@ -2,15 +2,15 @@ package nufo.diss;
 
 import java.util.PriorityQueue;
 
-public abstract class EventSimulation extends MonteCarlo {
+public abstract class EventSimulation extends SimulationCore {
     private final PriorityQueue<Event> eventCalendar;
     protected double currentTime;
     private final double maxTime;
     private TimeMultiplier timeMultiplier;
     private ExecutionMode executionMode;
 
-    protected EventSimulation(int numberOfReplications, int skipReplicationsPercentage, ExecutionMode executionMode, double maxTime) {
-        super(numberOfReplications, skipReplicationsPercentage);
+    protected EventSimulation(int numberOfReplications, ExecutionMode executionMode, double maxTime) {
+        super(numberOfReplications);
 
         this.maxTime = maxTime;
         this.eventCalendar = new PriorityQueue<>();
@@ -41,12 +41,15 @@ public abstract class EventSimulation extends MonteCarlo {
             Event event = eventCalendar.poll();
             setCurrentTime(event.getExecutionTime());
             event.execute();
-            notifyStateChange();
+
+            if (executionMode == ExecutionMode.REAL_TIME) {
+                notifyStateChange(StateChangeType.EVENT);
+            }
         }
     }
 
     public void addEvent(Event event) {
-        if (Double.compare(event.getExecutionTime(), currentTime) < 0) {
+        if (event.getExecutionTime() < currentTime - 1e-6) {
             throw new IllegalStateException("Simulation time must not decrease.");
         }
 
@@ -59,7 +62,6 @@ public abstract class EventSimulation extends MonteCarlo {
 
     private void setCurrentTime(double time) {
         currentTime = time;
-//        notifyStateChange();
     }
 
     public double getCurrentTime() {
@@ -75,7 +77,15 @@ public abstract class EventSimulation extends MonteCarlo {
     }
 
     public void setExecutionMode(ExecutionMode executionMode) {
+        if (this.executionMode == executionMode) {
+            return;
+        }
+
         this.executionMode = executionMode;
+
+        if (executionMode == ExecutionMode.REAL_TIME) {
+            addEvent(new SystemEvent(this, currentTime));
+        }
     }
 
     public ExecutionMode getExecutionMode() {
@@ -107,7 +117,11 @@ public abstract class EventSimulation extends MonteCarlo {
         FASTER_50(50.0),
         FASTER_100(100.0),
         FASTER_500(500.0),
-        FASTER_1000(1000.0);
+        FASTER_1000(1000.0),
+        FASTER_5000(5000.0),
+        FASTER_10_000(10000.0),
+        FASTER_50_000(50000.0),
+        FASTER_100_000(100000.0);
 
         public final double value;
 
@@ -132,6 +146,10 @@ public abstract class EventSimulation extends MonteCarlo {
                 case "100x" -> FASTER_100;
                 case "500x" -> FASTER_500;
                 case "1000x" -> FASTER_1000;
+                case "5000x" -> FASTER_5000;
+                case "10 000x" -> FASTER_10_000;
+                case "50 000x" -> FASTER_50_000;
+                case "100 000x" -> FASTER_100_000;
                 default -> throw new IllegalArgumentException("Unknown time multiplier: " + value);
             };
         }
@@ -149,6 +167,10 @@ public abstract class EventSimulation extends MonteCarlo {
                 case FASTER_100 -> "100x";
                 case FASTER_500 -> "500x";
                 case FASTER_1000 -> "1000x";
+                case FASTER_5000 -> "5000x";
+                case FASTER_10_000 -> "10 000x";
+                case FASTER_50_000 -> "50 000x";
+                case FASTER_100_000 -> "100 000x";
             };
         }
     }
