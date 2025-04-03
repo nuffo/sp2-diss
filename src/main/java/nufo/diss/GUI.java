@@ -62,8 +62,8 @@ public class GUI extends JFrame {
     private int skipReplicationsPercentage;
 
     public GUI() {
-        registerListeners();
         initComponents();
+        registerListeners();
         initFrame();
     }
 
@@ -74,9 +74,9 @@ public class GUI extends JFrame {
                     FurnitureSimulation.ReplicationData data = (FurnitureSimulation.ReplicationData) d.data();
                     int doneReplications = data.numberOfDoneReplications();
                     doneReplicationsLabel.setText(String.valueOf(doneReplications));
-                    groupAWorkloadLabel.setText(String.format("%.2f%%", data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.A).mean() * 100));
-                    groupBWorkloadLabel.setText(String.format("%.2f%%", data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.B).mean() * 100));
-                    groupCWorkloadLabel.setText(String.format("%.2f%%", data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.C).mean() * 100));
+                    groupAWorkloadLabel.setText(String.format("%.2f%% <%.2f, %.2f>", data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.A).mean() * 100, data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.A).confidenceIntervalLowerBound() * 100, data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.A).confidenceIntervalUpperBound() * 100));
+                    groupBWorkloadLabel.setText(String.format("%.2f%% <%.2f, %.2f>", data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.B).mean() * 100, data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.B).confidenceIntervalLowerBound() * 100, data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.B).confidenceIntervalUpperBound() * 100));
+                    groupCWorkloadLabel.setText(String.format("%.2f%% <%.2f, %.2f>", data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.C).mean() * 100, data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.C).confidenceIntervalLowerBound() * 100, data.carpenterGroupWorkloads().get(FurnitureSimulation.Carpenter.Group.C).confidenceIntervalUpperBound() * 100));
                     simulationReplicationPanel.setVisible(true);
                     avgOrderWorkingTimeReplicationLabel.setText(String.format("%.3fh <%.3fh, %.3fh>", data.orderWorkingTime().mean() / 3600.0, data.orderWorkingTime().confidenceIntervalLowerBound() / 3600.0, data.orderWorkingTime().confidenceIntervalUpperBound() / 3600.0));
                     avgNotYetStartedWorkOrdersReplicationLabel.setText(String.format("%.2f <%.2f, %.2f>", data.notYetStartedWorkOrders().mean(), data.notYetStartedWorkOrders().confidenceIntervalLowerBound(), data.notYetStartedWorkOrders().confidenceIntervalUpperBound()));
@@ -180,7 +180,7 @@ public class GUI extends JFrame {
         EventSimulation.TimeMultiplier timeMultiplier = selectedItem.equals("Virtual") ? EventSimulation.TimeMultiplier.REAL_TIME : EventSimulation.TimeMultiplier.fromString(selectedItem);
         controller.startSimulation(
                 numberOfReplications,
-                selectedItem.equals("Virtual") ? EventSimulation.ExecutionMode.VIRTUAL_TIME : EventSimulation.ExecutionMode.REAL_TIME,
+                selectedItem.equals("Virtual") ? EventSimulation.TimeMode.VIRTUAL_TIME : EventSimulation.TimeMode.REAL_TIME,
                 groupASize,
                 groupBSize,
                 groupCSize,
@@ -225,10 +225,10 @@ public class GUI extends JFrame {
 
         if (!selectedItem.equals("Virtual")) {
             EventSimulation.TimeMultiplier selectedMultiplier = EventSimulation.TimeMultiplier.fromString(selectedItem);
-            controller.setSimulationExecutionMode(EventSimulation.ExecutionMode.REAL_TIME);
+            controller.setSimulationExecutionMode(EventSimulation.TimeMode.REAL_TIME);
             controller.setSimulationTimeMultiplier(selectedMultiplier);
         } else {
-            controller.setSimulationExecutionMode(EventSimulation.ExecutionMode.VIRTUAL_TIME);
+            controller.setSimulationExecutionMode(EventSimulation.TimeMode.VIRTUAL_TIME);
         }
 
         simulationRealTimePanel.setVisible(!selectedItem.equals("Virtual"));

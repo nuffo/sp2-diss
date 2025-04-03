@@ -8,8 +8,8 @@ public class Controller {
         this.gui = gui;
     }
 
-    public void startSimulation(int numberOfReplications, EventSimulation.ExecutionMode executionMode, int groupASize, int groupBSize, int groupCSize, EventSimulation.TimeMultiplier timeMultiplier) {
-        simulation = new FurnitureSimulation(numberOfReplications, executionMode, 249 * 8 * 60 * 60 - 1, groupASize, groupBSize, groupCSize);
+    public void startSimulation(int numberOfReplications, EventSimulation.TimeMode timeMode, int groupASize, int groupBSize, int groupCSize, EventSimulation.TimeMultiplier timeMultiplier) {
+        simulation = new FurnitureSimulation(numberOfReplications, timeMode, 249 * 8 * 60 * 60 - 1, groupASize, groupBSize, groupCSize);
         simulation.setTimeMultiplier(timeMultiplier);
         simulation.setConsumer(gui.getStateConsumer());
 
@@ -35,7 +35,7 @@ public class Controller {
         simulation.setTimeMultiplier(multiplier);
     }
 
-    public void setSimulationExecutionMode(EventSimulation.ExecutionMode mode) {
+    public void setSimulationExecutionMode(EventSimulation.TimeMode mode) {
         if (simulation == null) return;
         simulation.setExecutionMode(mode);
     }

@@ -43,10 +43,12 @@ public abstract class SimulationCore {
             beforeExperiment();
 
             this.experiment();
-            doneReplications++;
 
-            afterExperiment();
-            notifyStateChange(StateChangeType.EXPERIMENT);
+            if (state != State.STOPPED) {
+                doneReplications++;
+                afterExperiment();
+                notifyStateChange(StateChangeType.EXPERIMENT);
+            }
         }
 
         afterSimulation();

@@ -7,16 +7,16 @@ public abstract class EventSimulation extends SimulationCore {
     protected double currentTime;
     private final double maxTime;
     private TimeMultiplier timeMultiplier;
-    private ExecutionMode executionMode;
+    private TimeMode timeMode;
 
-    protected EventSimulation(int numberOfReplications, ExecutionMode executionMode, double maxTime) {
+    protected EventSimulation(int numberOfReplications, TimeMode timeMode, double maxTime) {
         super(numberOfReplications);
 
         this.maxTime = maxTime;
         this.eventCalendar = new PriorityQueue<>();
         this.currentTime = 0.0;
         this.timeMultiplier = TimeMultiplier.REAL_TIME;
-        this.executionMode = executionMode;
+        this.timeMode = timeMode;
     }
 
     public void simulate() {
@@ -42,7 +42,7 @@ public abstract class EventSimulation extends SimulationCore {
             setCurrentTime(event.getExecutionTime());
             event.execute();
 
-            if (executionMode == ExecutionMode.REAL_TIME) {
+            if (timeMode == TimeMode.REAL_TIME) {
                 notifyStateChange(StateChangeType.EVENT);
             }
         }
@@ -76,20 +76,20 @@ public abstract class EventSimulation extends SimulationCore {
         this.timeMultiplier = timeMultiplier;
     }
 
-    public void setExecutionMode(ExecutionMode executionMode) {
-        if (this.executionMode == executionMode) {
+    public void setExecutionMode(TimeMode timeMode) {
+        if (this.timeMode == timeMode) {
             return;
         }
 
-        this.executionMode = executionMode;
+        this.timeMode = timeMode;
 
-        if (executionMode == ExecutionMode.REAL_TIME) {
+        if (timeMode == TimeMode.REAL_TIME) {
             addEvent(new SystemEvent(this, currentTime));
         }
     }
 
-    public ExecutionMode getExecutionMode() {
-        return executionMode;
+    public TimeMode getExecutionMode() {
+        return timeMode;
     }
 
     public void experiment() {
@@ -101,7 +101,7 @@ public abstract class EventSimulation extends SimulationCore {
     protected abstract void beforeExperiment();
     protected abstract void afterExperiment();
 
-    public enum ExecutionMode {
+    public enum TimeMode {
         VIRTUAL_TIME,
         REAL_TIME
     }

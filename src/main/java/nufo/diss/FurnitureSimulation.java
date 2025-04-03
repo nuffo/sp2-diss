@@ -26,13 +26,13 @@ public class FurnitureSimulation extends EventSimulation{
 
     protected FurnitureSimulation(
             int numberOfReplications,
-            ExecutionMode executionMode,
+            TimeMode timeMode,
             double maxTime,
             int carpenterGroupASize,
             int carpenterGroupBSize,
             int carpenterGroupCSize
     ) {
-        super(numberOfReplications, executionMode, maxTime);
+        super(numberOfReplications, timeMode, maxTime);
 
         carpentersGroupSizes = new Hashtable<>();
         carpentersGroupSizes.put(Carpenter.Group.A, carpenterGroupASize);
@@ -129,6 +129,10 @@ public class FurnitureSimulation extends EventSimulation{
             workplace = null;
             workTime = 0.0;
             lastWorkStartTime = 0.0;
+        }
+
+        public static void resetCarpenterId() {
+            carpenterId = 0;
         }
 
         public enum State {
@@ -377,6 +381,7 @@ public class FurnitureSimulation extends EventSimulation{
         actionTimeGenerators.get(Order.Type.WARDROBE).put(Order.State.ASSEMBLING, new UniformGenerator(35 * 60, 75 * 60, Generator.Mode.CONTINUOUS));
         actionTimeGenerators.get(Order.Type.WARDROBE).put(Order.State.FITTINGS_INSTALLATION, new UniformGenerator(15 * 60, 25 * 60, Generator.Mode.CONTINUOUS));
 
+        Carpenter.resetCarpenterId();
         for (Carpenter.Group group : Carpenter.Group.values()) {
             List<Carpenter> carpenters = new LinkedList<>();
             for (int i = 0; i < carpentersGroupSizes.get(group); i++) {
